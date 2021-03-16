@@ -1,0 +1,58 @@
+---
+- name: Exchange Keys between prod and respective dr servers for etrading
+  become: yes
+  hosts: all
+  tasks:
+
+    - name: create/ensure group mkvgrp exists
+      group:
+        name: mkvgrp
+        state: present
+        gid: 1807
+
+    - name: create user account for etrading with uid 1833 and add it to mkvgrp group
+      user:
+        name: etrading
+        shell: /bin/bash
+        home: /app/etrading
+        create_home: true
+        groups: mkvgrp
+        append: true
+        uid: 1833
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+  
+    - name: Fetch public keys from the prod servers
+      fetch: 
+        src: "/app/etrading/.ssh/id_rsa.pub"
+        dest: buffer/prod/{{inventory_hostname_short}}-id_rsa.pub
+        flat: yes
+      when: "'prod' in group_names"
+
+    - name: Copy the prod public key to respective dr server
+      copy: 
+        src: "buffer/prod/{{inventory_hostname_short[:-2] + 'p'}}-id_rsa.pub"
+        dest: "/tmp/{{inventory_hostname_short[:-2] + 'p'}}-id_rsa.pub"
+      when: "'dr' in group_names"
+
+    - name: Add the prod public key into Authorized_keys file on the respective dr server
+      shell: "cat /tmp/{{inventory_hostname_short[:-2] + 'p'}}-id_rsa.pub >> /app/etrading/.ssh/authorized_keys"
+      when: "'dr' in group_names"
+
+    - name: Fetch public keys from the dr servers
+      fetch: 
+        src: "/app/etrading/.ssh/id_rsa.pub"
+        dest: "buffer/dr/{{inventory_hostname_short}}-id_rsa.pub"
+        flat: yes
+      when: "'dr' in group_names"
+
+    - name: Copy the dr public key to respective prod server
+      copy: 
+        src: "buffer/dr/{{inventory_hostname_short[:-1]+ 'dr'}}-id_rsa.pub"
+        dest: "/tmp/{{inventory_hostname_short[:-1] + 'dr'}}-id_rsa.pub"
+      when: "'prod' in group_names"
+    
+    - name: add the dr public key into Authorized_keys file on the respective prod server
+      shell: "cat /tmp/{{inventory_hostname_short[:-1] + 'dr'}}-id_rsa.pub >> /app/etrading/.ssh/authorized_keys"
+      when: "'prod' in group_names"
