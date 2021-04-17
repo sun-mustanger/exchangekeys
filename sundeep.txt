@@ -1,0 +1,92 @@
+Just a brief note on Ansible and Ansible Tower
+
+1. Ansible is an open source automation tool for system configuration, software deployment
+and orchestration using an agentless architecture which communicates to Linux and
+Windows endpoints using ssh (secure shell) or WinRM (Windows Remote Management)
+respectively. It uses a simple YAML-based syntax for playbook creation. Ansible comes
+with an extensive library of plugins and modules, and has an active developer community
+continuously contributing new content to the public GitHub.
+2. Ansible Tower is a web-based user interface on top of Ansible”s command line interface
+(CLI). Together with Ansible as the automation engine, Ansible Tower offers many
+features including:
+• RBAC – role based access control via Users, Organizations, Roles, Teams
+• Authentication and Multi-tenancy support
+• Reporting and Dashboard
+• Job and Workflow Templates
+• Surveys
+• Dynamic Inventory
+• Gathering Facts
+• Library of existing modules; support for custom module development
+• Evidence Collection – integration with ELK, Splunk, Loggly, etc.
+• Connection mechanisms (ssh, winrm/psrp)
+• Error handling and retries in playbooks
+• Multiple vault options – Tower, Hashicorp, Cyberark, Thycotic
+• Batch processing and asynchronous execution 
+
+
+There are 2 approaches to implement AT in our environment
+
+I. Dedicated model
+
+Access to the AT for all application teams based on RBAC. App teams will manager their respective organizations, projects, credentials,inventories and job templates.
+Requirements:
+1. Users:
+   a) A specific user to access the bitbucket repo to download the playbooks
+   b) A specific user to access the endpoint servers.(ie. ansible user)
+2. SCM:
+   Every application team:
+   a) Needs to create a bitbucket repo which will consist of the ansible playbooks for 
+their application.This repo would be accessed by a specific user which will be configured as a part of the project in AT
+   b) Create a project based on the bitbucket repo for their respecitive application
+   c) Create an inventory
+   d) Create the credential to access the endpoints( i.e ansible user). The ansible user needs to be created on the endpoint with sudo privileges and ssh_keys need to be generated and copied into AT.
+e) Create the job templates to run on the respective servers.
+3. User Control:
+   a) Unix Team would manage the organizations and Users
+
+Pros:
+   1. Less Dependency on the Unix team
+   2. Application Team can manage whatever is required
+   3. Access to the app teams can be restricted to particular objects in AT
+Cons:
+   1. Need to provide KT sessions to app teams on how to use AT.
+   2. AT support - TBD. Just in case the AT breaks ?
+   3. Need to create a seperate ansible user to restrict the app teams to run playbooks on their own application servers unlike using root which has complete access to all servers.
+   4. Each app team would be responsible for managing/maintaining their org in AT and the SCM repos. (silos will be created)
+
+
+
+II. Shared Model
+
+AT would be managed completely by the Unix Team with Read-Only access to the organization and execute access for the playbooks to the application teams.(TBD)
+1. Users:
+   a) A shared user(service account) to access the bitbucket repo to download the playbooks for all applications
+   b) Root user can be used to access the endpoint servers.(ie. ansible user), since unix team is the owner.
+2. SCM:
+    a) Need to create a bitbucket repo which will consist of all the ansible playbooks for 
+all applications. A single repo would consists of all the roles. This repo would be accessed by a shared user (service account) which will be configured as a part of the project in AT.
+   b) Unix team will create a project based on the bitbucket repo for their respecitive application
+   c) Unix team will upload the inventory for the application or application team can be provided with just the inventory admin access.
+   d) Unix team will use the root credential to access the endpoints( i.e ansible user). App team will not be given access to the any credentials.
+   e) Unix team will create the job templates to run on the respective servers based on the requirements from the application teams or the application team can be given job template execute permissions.
+   f) The application teams can manage their respective playbooks in the SCM( at a centralized location)
+3. User Control:
+   a) Unix Team would manage the organizations and Users
+
+Pros:
+   1. A centralized place to manage all the playbooks for all applications
+   2. RBAC on AT following POLP.
+   3. Maintaining an audit trail
+   4. Utilizing the AT functionality to the maximum.
+   5. This will create a reusable framework 
+
+Cons:
+   1. More Dependency on the Unix team
+   2. Application teams may not like the restrictions once they start using AT.
+   3. Application inventory management overhead on Unix Team.
+   4. Control on who can approve/upload playbooks in the central repo - TBD
+
+
+
+
+
