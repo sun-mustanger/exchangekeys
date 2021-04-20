@@ -1,0 +1,118 @@
+---
+- name: Install/Update AllegroGraph
+  hosts: all
+  become: yes
+  gather_facts: false
+  vars:
+    user_name: "madisond"
+    group_name: "madisond"
+    install_version: "7.0.4"
+    # install_type: "new" for new install or "upgrade" for upgrade
+    install_type: "upgrade"
+    agraph_port: "10035"
+    super_user: "super"
+    super_password: "password"
+
+  tasks:
+  
+  - name: Get the service facts
+    service_facts:
+
+  - debug:
+      var: ansible_facts.services["agraph.service"]
+
+  - name: Making sure agraph service is stopped
+    systemd:
+      state: stopped
+      name: agraph
+    when: ansible_facts.services["agraph.service"] is defined
+
+  - name: Download tarball
+    get_url:
+      url: "https://franz.com/ftp/pri/acl/ag/ag{{ install_version}}/linuxamd64.64/agraph-{{ install_version}}-linuxamd64.64.tar.gz"
+      dest: /apps/{{ user_name }}/
+    become_user: "{{ user_name }}"
+
+  - name: Unarchive source
+    unarchive:
+      src: /apps/{{ user_name }}/agraph-{{ install_version }}-linuxamd64.64.tar.gz
+      dest: /apps/{{ user_name }}/
+      remote_src: yes    
+    become_user: "{{ user_name }}"
+
+  - name: Install the prerequisites
+    yum:
+      name: openssl
+      state: present
+
+  - name: Run the AllegroGraph installation
+    shell: ./install-agraph /apps/{{ user_name }}/agraph --no-configure
+    args:
+      chdir: /apps/{{ user_name }}/agraph-{{ install_version }}
+      creates: /apps/{{ user_name }}/agraph
+    become_user: "{{ user_name }}"
+    when: install_type == "new"    
+
+  - name: Installing pip
+    yum:
+      name: python-pip
+      state: present
+    when: install_type == "upgrade"
+
+  - name: Installing requirements for upgrade
+    pip:
+      name: pexpect
+      state: present
+    when: install_type == "upgrade"
+
+  - name: Upgrading AllegroGraph
+    expect:
+      command: ./install-agraph /apps/{{ user_name }}/agraph --no-configure
+      responses:
+        (?i)Overwrite: "y"
+      chdir: /apps/{{ user_name }}/agraph-{{ install_version }}
+    when: install_type == "upgrade"
+
+  - name: Making sure the required directory permissions
+    file:
+      path: /apps/{{ user_name }}/agraph
+      state: directory
+      recurse: yes
+      owner: "{{ user_name }}"
+      group: "{{ group_name }}"
+
+  - name: Run the AllegroGraph Configuration
+    shell: ./configure-agraph --non-interactive --config-file $basedir/lib/agraph.cfg --data-dir $basedir/data --log-dir $basedir/log --pid-file $basedir/data/agraph.pid --runas-user {{ user_name }} --create-runas-user --port {{ agraph_port }} --super-user {{ super_user }}  --super-password {{ super_password }} >> /apps/{{ user_name }}/agraph/config_output.txt
+    args:
+      chdir: /apps/{{ user_name }}/agraph-{{ install_version }}
+    become_user: "{{ user_name }}"
+    environment:
+      basedir: /apps/{{ user_name }}/agraph
+
+  - name: Creating systemd service file
+    blockinfile:
+      path: /etc/systemd/system/agraph.service
+      create: yes
+      block: |
+        [Unit]
+        Description=AllegraGraph Service
+  
+        [Service]
+        Type=forking
+        User=madisond
+        ExecStart=/apps/madisond/agraph/lib/agraph-control start
+        ExecStop=/apps/madisond/agraph/lib/agraph-control stop
+     
+        [Install]
+        WantedBy=multi-user.target
+
+  - name: Reload the daemon and start agraph service
+    systemd:
+      state: started
+      daemon_reload: yes
+      name: agraph
+      enabled: yes
+    register: service_status
+
+  - debug:
+      var: service_status.state
