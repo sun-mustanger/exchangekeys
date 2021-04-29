@@ -1,0 +1,3 @@
+Cmnd_Alias DB_COMMAND = /bin/su - mssql,/bin/su - dbviewer,/bin/su - dssxmls,/bin/su - dss,/usr/bin/systemctl start httpd,/usr/bin/systemctl stop httpd,/usr/bin/systemctl restart httpd
+
+pnataraj ALL=NOPASSWD: DB_COMMAND
