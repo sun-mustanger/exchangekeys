@@ -1,0 +1,70 @@
+- name: DBViewer playbook
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+   perl_modules:
+   - DBI
+   #- DBD::ODBC
+   #- Apache::Request
+   #- Apache::Constants
+   #- Apache::Cookie
+   - CGI
+   - CGI::Cookie
+   - Data::Dumper
+   - Date::Manip
+   - Net::LDAP
+   - Authen::SASL
+   - File::Basename
+   - XML::Parser # dependency for XML::DOM
+   - XML::DOM
+   - XML::Dumper
+   - PDF::Create
+   - Term::ANSIColor
+   - POSIX
+   - MIME::Lite
+   - Sys::Syslog
+   - Cwd
+  # - exporter
+   versions:
+   - "1.643"   #DBI
+   #- "1.61"    #DBD::ODBC
+   #- "1.34"    #Apache::Request
+   #- "1.34"    #Apache::Cookie
+   - "4.51"    #CGI
+   - "4.51"    #CGI::Cookie
+   - "2.173"   #Data::Dumper
+   - "6.85"    #Date::Manip
+   - "0.68"    #Net::LDAP
+   - "2.16"    #Authen::SASL
+   - "5.32.1"  #File::Basename
+   - "1.46"    #XML::Parser
+   - "1.46"    #XML::DOM
+   - "0.81"    #XML::Dumper
+   - "1.46"    #PDF::Create
+   - "5.01"    #Term::ANSIColor
+   - "5.32.1"  #POSIX
+   - "3.031"   #MIME::Lite
+   - "0.36"    #Sys::Syslog
+   - "3.75"    #Cwd
+   #- "5.74"    #exporter
+    
+  tasks:
+    - name: Installing perl and dependencies
+      yum:
+        name: "{{ item }}"
+        state: latest
+      loop:
+      - "perl"
+      - "perl-devel"
+      - "perl-App-cpanminus"
+      - "gcc"
+      - "mod_perl"
+      - "wget"
+      - "glibc"
+      - "expat-devel"
+    - name: Installing Perl Modules
+      cpanm:
+        name: "{{ item[0] }}"
+        version: "{{ item[1] }}"
+      loop: "{{ perl_modules | zip(versions) | list }}"
