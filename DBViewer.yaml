@@ -63,8 +63,49 @@
       - "wget"
       - "glibc"
       - "expat-devel"
+      
+    - name: Create a directory if it does not exist
+      file:
+        path: /apps/lib/perl
+        state: directory
+        owner: root
+        group: dss   
+    
     - name: Installing Perl Modules
       cpanm:
         name: "{{ item[0] }}"
         version: "{{ item[1] }}"
       loop: "{{ perl_modules | zip(versions) | list }}"
+      
+    - name: Fetch the files from dss3q to ansible server
+      run_once: yes
+      fetch: 
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        flat: yes
+      loop:
+       - {src: '/apps/dbviewer/dss3q_dbviewer.tar.gz', dest: 'buffer/'}
+       - {src: '/apps/dssxmls/dss3q_dssxmls.tar.gz, dest: 'buffer/'}
+       - {src: '/apps/dss/web/dss3q_dss_web.tar.gz, dest: 'buffer/'}
+       - {src: '/apps/lib/perl/dss3q_lib_perl.tar.gz, dest: 'buffer/'}
+      when: "{{ inventory_hostname == 'dss3q' }}"
+
+    - name: Copy the file from ansible server to onejf1q
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+      - {src: 'buffer/dss3q_dbviewer.tar.gz', dest: '/apps/dbviewer/dss3q_dbviewer.tar.gz'}
+      - {src: 'buffer/dss3q_dssxmls.tar.gz', dest: '/apps/dssxmls/dss3q_dssxmls.tar.gz'}
+      - {src: 'buffer/dss3q_dss_web.tar.gz', dest: '/apps/dss/web/dss3q_dss_web.tar.gz'}
+      - {src: 'buffer/dss3q_lib_perl.tar.gz', dest: '/apps/lib/perl/dss3q_lib_perl.tar.gz'}
+      when: "{{ inventory_hostname == 'onejf1q' }}"
+
+
+   # wget http://apache.org/dist/perl/mod_perl-1.31.tar.gz
+   #tar xzvf mod_perl-1.31.tar.gz
+   #cd mod_perl-1.31
+   #perl Makefile.PL APACHE_SRC=../apache_1.3.9/src DO_HTTPD=1 USE_APACI=1 EVERYTHING=1
+   #make && make test && make install
+   #cd ../apache_1.3.xx
+   #make install
