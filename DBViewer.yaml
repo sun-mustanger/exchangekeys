@@ -6,9 +6,9 @@
   vars:
    perl_modules:
    - DBI
-   #- DBD::ODBC
+   - DBD::ODBC
    - Apache::Request
-   - Apache::Constants
+   #- Apache::Constants  # part of mod_perl
    - Apache::Cookie
    - CGI
    - CGI::Cookie
@@ -29,7 +29,7 @@
    - Exporter
    versions:
    - "1.643"   #DBI
-   #- "1.61"    #DBD::ODBC
+   - "1.61"    #DBD::ODBC
    - "2.16"    #Apache::Request
    - "2.16"    #Apache::Cookie
    - "4.51"    #CGI
