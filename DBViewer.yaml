@@ -1,3 +1,4 @@
+---
 - name: DBViewer playbook
   hosts: all
   become: yes
@@ -6,9 +7,9 @@
    perl_modules:
    - DBI
    #- DBD::ODBC
-   #- Apache::Request
-   #- Apache::Constants
-   #- Apache::Cookie
+   - Apache::Request
+   - Apache::Constants
+   - Apache::Cookie
    - CGI
    - CGI::Cookie
    - Data::Dumper
@@ -25,12 +26,12 @@
    - MIME::Lite
    - Sys::Syslog
    - Cwd
-  # - exporter
+   - Exporter
    versions:
    - "1.643"   #DBI
    #- "1.61"    #DBD::ODBC
-   #- "1.34"    #Apache::Request
-   #- "1.34"    #Apache::Cookie
+   - "2.16"    #Apache::Request
+   - "2.16"    #Apache::Cookie
    - "4.51"    #CGI
    - "4.51"    #CGI::Cookie
    - "2.173"   #Data::Dumper
@@ -47,7 +48,7 @@
    - "3.031"   #MIME::Lite
    - "0.36"    #Sys::Syslog
    - "3.75"    #Cwd
-   #- "5.74"    #exporter
+   - "5.74"    #Exporter
     
   tasks:
     - name: Installing perl and dependencies
@@ -60,23 +61,23 @@
       - "perl-App-cpanminus"
       - "gcc"
       - "mod_perl"
+      - "mod_perl-devel"
       - "wget"
       - "glibc"
       - "expat-devel"
-      
-    - name: Create a directory if it does not exist
-      file:
-        path: /apps/lib/perl
-        state: directory
-        owner: root
-        group: dss   
-    
     - name: Installing Perl Modules
       cpanm:
         name: "{{ item[0] }}"
         version: "{{ item[1] }}"
       loop: "{{ perl_modules | zip(versions) | list }}"
-      
+
+    - name: Create a directory if it does not exist
+      file:
+        path: /apps/lib/perl
+        state: directory
+        owner: root
+        group: dss
+
     - name: Fetch the files from dss3q to ansible server
       run_once: yes
       fetch: 
