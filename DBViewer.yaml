@@ -10,6 +10,7 @@
    - Apache::Request
    #- Apache::Constants  # part of mod_perl
    - Apache::Cookie
+   - Apache::DBI
    - CGI
    - CGI::Cookie
    - Data::Dumper
@@ -32,6 +33,7 @@
    - "1.61"    #DBD::ODBC
    - "2.16"    #Apache::Request
    - "2.16"    #Apache::Cookie
+   - "1.12"    #Apache::DBI
    - "4.51"    #CGI
    - "4.51"    #CGI::Cookie
    - "2.173"   #Data::Dumper
@@ -102,6 +104,37 @@
       - {src: 'buffer/dss3q_lib_perl.tar.gz', dest: '/apps/lib/perl/dss3q_lib_perl.tar.gz'}
       when: "{{ inventory_hostname == 'onejf1q' }}"
 
+
+    - name: configure cpan
+      expect:
+        shell: "cpan install"
+      responses:
+        'Would you like to configure as much as possible automatically?': 'yes'
+        'What approach do you want?': 'sudo'
+        'Would you like me to automatically choose some CPAN mirror sites for you?': 'yes'
+      
+    - name: Create freetds.conf
+      file:
+        path: "/usr/local/etc/freetds.conf"
+        owner: dbviewer
+        group: dbviewer
+        state: touch
+        mode: '0755'
+    - name: Set permissions for the .ini files
+      file:
+        path: "/usr/local/etc/{{ item }}"
+        owner: dbviewer
+        group: dbviewer
+        mode: '0644'
+      loop: "{{ files_to_change }}"
+
+    - name: Change permissions on httpd logs
+      file:
+        path: "/var/log/httpd"
+        owner: dbviewer
+        group: dbviewer
+        mode: '0755'
+        recurse: yes
 
    # wget http://apache.org/dist/perl/mod_perl-1.31.tar.gz
    #tar xzvf mod_perl-1.31.tar.gz
