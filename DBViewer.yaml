@@ -120,6 +120,7 @@
         group: dbviewer
         state: touch
         mode: '0755'
+        
     - name: Set permissions for the .ini files
       file:
         path: "/usr/local/etc/{{ item }}"
@@ -135,6 +136,42 @@
         group: dbviewer
         mode: '0755'
         recurse: yes
+        
+    - name: Download tarball
+      get_url:
+        url: "ftp://ftp.unixodbc.org/pub/unixODBC/unixODBC-{{ install_version }}.tar.gz"
+        dest: /var/tmp/
+
+    - name: Unarchive the tar ball
+      unarchive:
+        src: /var/tmp/unixODBC-{{ install_version }}.tar.gz
+        dest: /var/tmp/
+        remote_src: yes
+
+    - name: Installing prerequisites
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+      - libtool
+      - make
+      - autoconf
+
+    - name: Run the configure
+      shell: ./configure
+      args:
+        chdir: /var/tmp/unixODBC-{{ install_version }}
+
+    - name: Run the make utility
+      shell: make 
+      args:
+        chdir: /var/tmp/unixODBC-{{ install_version }}
+
+    - name: Run the make install utility
+      shell: make install
+      args:
+        chdir: /var/tmp/unixODBC-{{ install_version }}
+        
 
    # wget http://apache.org/dist/perl/mod_perl-1.31.tar.gz
    #tar xzvf mod_perl-1.31.tar.gz
