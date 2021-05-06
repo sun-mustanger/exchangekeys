@@ -139,7 +139,7 @@
         
     - name: Download tarball
       get_url:
-        url: "ftp://ftp.unixodbc.org/pub/unixODBC/unixODBC-{{ install_version }}.tar.gz"
+        url: "http://www.unixodbc.org/unixODBC--{{ install_version }}.tar.gz"
         dest: /var/tmp/
 
     - name: Unarchive the tar ball
